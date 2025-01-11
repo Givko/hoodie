@@ -1,0 +1,209 @@
+openapi: "3.1.0"
+
+info:
+  title: Hoodie API Server
+  summary: Private Chat Server Written in Go
+  license:
+    name: GPL-3.0
+    url: https://www.gnu.org/licenses/gpl-3.0.en.html
+  version: 0.1
+
+servers:
+  - url: "{protocol}://{hostname}:{port}/api/{version}"
+    variables:
+      protocol:
+        default: https
+        enum:
+          - http
+          - https
+      hostname:
+        default: 127.0.0.1
+      port:
+        default: 443
+      version:
+        default: 0.1
+        enum:
+          - 0.1
+
+paths:
+  /init:
+    post:
+      summary: Initialize server
+      description: Initialize server and create admin user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserCreateRequest"
+      responses:
+        "201":
+          description: The server has been initialized successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#components/schemas/UserResponse"
+        "401":
+          description: A valid token has not been provided
+          content:
+            application/json:
+              schema:
+                $ref: "#components/schemas/Error"
+        "403":
+          description: The server has been already initialized
+          content:
+            application/json:
+              schema:
+                $ref: "#components/schemas/Error"
+
+  /users:
+    get:
+      summary: List all users
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#components/schemas/UserResponse"
+    post:
+      summary: Register a new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserCreateRequest"
+      responses:
+        "201":
+          description: User created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#components/schemas/UserResponse"
+        "400":
+          description: User already exists
+          content:
+            application/json:
+              schema:
+                $ref: "#components/schemas/Error"
+
+  "/users/{userId}":
+    parameters:
+      - name: userId
+        in: path
+        description: ID of the user to find
+        required: true
+        schema:
+          type: integer
+          format: int64
+    get:
+      summary: Find a user by ID
+      responses:
+        "200":
+          description: User found successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#components/schemas/UserResponse"
+        "404":
+          content:
+            description: User not found
+            application/json:
+              schema:
+                $ref: "#components/schemas/Error"
+    patch:
+      summary: Update an existing user by ID
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserCreateRequest"
+      responses:
+        "200":
+          description: User updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#components/schemas/Error"
+        "404":
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: "#components/schemas/Error"
+    delete:
+      summary: Delete an existing user by ID
+      responses:
+        "204":
+          description: User deleted successfully
+        "404":
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: "#components/schemas/Error"
+
+  /users/login:
+    post:
+      summary: Log user into the system
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserCreateRequest" # TODO: Fix schema name
+      responses:
+        "200":
+          description: User logged in successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+        "404":
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: "#components/schemas/Error"
+
+  /users/logout:
+    get:
+      summary: Log out user
+      responses:
+        "204":
+          description: User logged out successfully
+
+components:
+  schemas:
+    UserCreateRequest:
+      type: object
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+          format: password
+
+    UserResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+        username:
+          type: string
+        isAdmin:
+          type: boolean
+        createdAt:
+          type: string
+        LastUpdatedAt:
+          type: string
+
+    Error:
+      type: object
+      properties:
+        code:
+          type: string
+        message:
+          type: string
