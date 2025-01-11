@@ -31,13 +31,16 @@
             - LastUpdatedAt
         - Endpoints
             - `POST /api/init`
+
             - `GET /api/users`
             - `GET /api/users/<id>`
-            - `POST /api/users/register`
+            - `POST /api/users`
                 - Password hashing
-            - `POST /api/users/login` 
             - `PATCH /api/users/<id>`
             - `DELETE /api/users/<id>`
+
+            - `POST /api/users/login`
+            - `GET /api/users/logout`
 
 
 ## v0.2
