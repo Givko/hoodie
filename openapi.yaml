@@ -103,6 +103,8 @@ paths:
                 $ref: "#/components/schemas/Error"
         "401":
           $ref: "#/components/responses/UnauthorizedAccess"
+        "403":
+          $ref: "#/components/responses/ForbiddenAccess"
 
 
   /users/{userId}:
@@ -153,6 +155,8 @@ paths:
                 $ref: "#/components/schemas/Error"
         "401":
           $ref: "#/components/responses/UnauthorizedAccess"
+        "403":
+          $ref: "#/components/responses/ForbiddenAccess"
         "404":
           $ref: "#/components/responses/UserNotFound"
     delete:
@@ -163,6 +167,8 @@ paths:
           description: User deleted successfully. No content.
         "401":
           $ref: "#/components/responses/UnauthorizedAccess"
+        "403":
+          $ref: "#/components/responses/ForbiddenAccess"
         "404":
           $ref: "#/components/responses/UserNotFound"
 
@@ -309,7 +315,15 @@ components:
 
   responses:
     UnauthorizedAccess:
-      description: Unauthorized access.
+      description: >
+        The client has not provided authentication or is invalid.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    ForbiddenAccess:
+      description: >
+        The user is authenticated but does not have access to the requested resource.
       content:
         application/json:
           schema:
