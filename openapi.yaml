@@ -127,11 +127,7 @@ paths:
         "401":
           $ref: "#/components/responses/UnauthorizedAccess"
         "404":
-          description: User not found.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
+          $ref: "#/components/responses/UserNotFound"
     patch:
       summary: Update an Existing User by ID
       description: Update user information for the specified user ID.
@@ -158,11 +154,7 @@ paths:
         "401":
           $ref: "#/components/responses/UnauthorizedAccess"
         "404":
-          description: User not found.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
+          $ref: "#/components/responses/UserNotFound"
     delete:
       summary: Delete an Existing User by ID
       description: Remove a user from the system using their ID.
@@ -172,11 +164,7 @@ paths:
         "401":
           $ref: "#/components/responses/UnauthorizedAccess"
         "404":
-          description: User not found.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
+          $ref: "#/components/responses/UserNotFound"
 
   /users/login:
     post:
@@ -203,11 +191,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
         "404":
-          description: User not found.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
+          $ref: "#/components/responses/UserNotFound"
 
   /users/logout:
     get:
@@ -326,6 +310,12 @@ components:
   responses:
     UnauthorizedAccess:
       description: Unauthorized access.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    UserNotFound:
+      description: User not found.
       content:
         application/json:
           schema:
