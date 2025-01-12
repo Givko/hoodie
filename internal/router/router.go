@@ -2,6 +2,7 @@ package router
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/plamendelchev/hoodie/internal/handlers"
 )
 
 // Init initializes the Gin router with all routes and middleware.
@@ -22,7 +23,7 @@ func setupRoutes(router *gin.Engine) {
 	// Example of setting up a group of routes
 	api := router.Group("/api")
 	{
-		api.POST("/users/register", func(c *gin.Context) {})
+		api.POST("/users/register", handlers.RegisterUserHandler)
 		// Add more routes as needed
 	}
 

@@ -1,9 +1,9 @@
 package main
 
 import (
-	"fmt"
+	"github.com/plamendelchev/hoodie/internal/router"
 )
 
 func main() {
-	fmt.Println("Hello Gosho")
+	router.Init().Run(":8080")
 }
