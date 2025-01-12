@@ -1,3 +1,4 @@
+---
 openapi: "3.1.0"
 
 info:
@@ -15,7 +16,7 @@ servers:
     description: Primary API Server
     variables:
       protocol:
-        default: https
+        default: http
         enum:
           - http
           - https
@@ -23,12 +24,16 @@ servers:
         default: 127.0.0.1
         description: Server hostname or IP address
       port:
-        default: "443"
+        default: "8080"
         description: Server port number
       version:
         default: "0.1"
-        enum: ["0.1"]
+        enum:
+          - "0.1"
         description: API version
+
+security:
+  - bearerHttpAuthentication: []
 
 paths:
   /init:
@@ -235,7 +240,7 @@ components:
         username:
           type: string
           description: Unique username for the user.
-          examples: 
+          examples:
             - johndoe
         password:
           type: string
@@ -251,13 +256,13 @@ components:
         username:
           type: string
           description: New username for the user.
-          examples: 
+          examples:
             - johndoe_updated
         password:
           type: string
           format: password
           description: New password for the user.
-          examples: 
+          examples:
             - NewStr0ngP@ss!
       description: Request payload for updating user information.
 
@@ -270,7 +275,7 @@ components:
         username:
           type: string
           description: Username of the user.
-          examples: 
+          examples:
             - johndoe
         password:
           type: string
@@ -328,5 +333,9 @@ components:
             - "The user with the given ID was not found."
       description: Standard error response.
 
-
-
+  securitySchemes:
+    bearerHttpAuthentication:
+      description: Bearer token using a JWT
+      type: http
+      scheme: Bearer
+      bearerFormat: JWT
