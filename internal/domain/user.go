@@ -13,13 +13,13 @@ type User struct {
 
 func NewPassword(password string, salt string) *Password {
 	pwd := Password{}
-	pwd.password = password
-	pwd.salt = salt
+	pwd.Password = password
+	pwd.Salt = salt
 
 	return &pwd
 }
 
 type Password struct {
-	password string
-	salt     string
+	Password string
+	Salt     string
 }
