@@ -28,10 +28,9 @@ func setupRoutes(router *gin.Engine) {
 
 	// Example of setting up a group of routes
 	api := router.Group("/api")
-	{
-		api.POST("/users/register", user_handler.RegisterUserHandler)
-		// Add more routes as needed
-	}
+	api.POST("/users/register", user_handler.RegisterUserHandler)
+	api.POST("/users/login", user_handler.LoginUserHandler)
+	// Add more routes as needed
 
 	// You can also set up other route groups or standalone routes
 }

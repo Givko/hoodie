@@ -1,4 +1,4 @@
-package dto
+package contracts
 
 type CreateUser struct {
 	Username string

@@ -4,11 +4,12 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/plamendelchev/hoodie/internal/api/dto"
+	"github.com/plamendelchev/hoodie/internal/api/contracts"
 )
 
 type UserService interface {
-	RegisterUser(createUser dto.CreateUser) error
+	RegisterUser(createUser *contracts.CreateUser) error
+	LoginUser(loginUser *contracts.LoginUser) (string, error)
 }
 
 type UserHandler struct {
@@ -21,7 +22,7 @@ func NewUserHandler(service UserService) *UserHandler {
 
 // RegisterUserHandler is the handler for the POST /api/users/register route.
 func (handler *UserHandler) RegisterUserHandler(c *gin.Context) {
-	var user dto.CreateUser
+	var user contracts.CreateUser
 
 	// Bind JSON body to createDto
 	if err := c.ShouldBindJSON(&user); err != nil {
@@ -29,11 +30,29 @@ func (handler *UserHandler) RegisterUserHandler(c *gin.Context) {
 		return
 	}
 
-	err := handler.service.RegisterUser(user)
+	err := handler.service.RegisterUser(&user)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
 	c.JSON(http.StatusCreated, gin.H{"message": "User created successfully"})
+}
+
+func (handler *UserHandler) LoginUserHandler(c *gin.Context) {
+	var user contracts.LoginUser
+
+	// Bind JSON body to createDto
+	if err := c.ShouldBindJSON(&user); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	jwt, err := handler.service.LoginUser(&user)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{"jwt": jwt})
 }

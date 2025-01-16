@@ -33,11 +33,10 @@ func (repo UserInMemoryRepository) Get(username string) (dbValue *domain.User, e
 		return &domain.User{}, fmt.Errorf("user not found")
 	}
 
-	user, ok := value.(domain.User)
+	user, ok := value.(*domain.User)
 	if !ok {
-		users.Delete(username)
-		return &domain.User{}, fmt.Errorf("user entry is corrupted")
+		return &domain.User{}, fmt.Errorf("corrupted user entry")
 	}
 
-	return &user, nil
+	return user, nil
 }

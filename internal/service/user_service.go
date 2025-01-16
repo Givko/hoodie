@@ -1,8 +1,10 @@
 package service
 
 import (
+	"fmt"
+
 	"github.com/google/uuid"
-	"github.com/plamendelchev/hoodie/internal/api/dto"
+	"github.com/plamendelchev/hoodie/internal/api/contracts"
 	"github.com/plamendelchev/hoodie/internal/domain"
 	"github.com/plamendelchev/hoodie/internal/security"
 )
@@ -23,7 +25,7 @@ func NewUserService(repository UserRepository) *UserService {
 }
 
 // RegisterUser registers a new user.
-func (service *UserService) RegisterUser(createUser dto.CreateUser) error {
+func (service *UserService) RegisterUser(createUser *contracts.CreateUser) error {
 	hashedPassword, err := security.HashPassword(createUser.Password)
 	if err != nil {
 		return err
@@ -37,4 +39,17 @@ func (service *UserService) RegisterUser(createUser dto.CreateUser) error {
 	}
 
 	return service.userRepository.Add(&user)
+}
+
+func (service *UserService) LoginUser(loginUser *contracts.LoginUser) (string, error) {
+	user, err := service.userRepository.Get(loginUser.Username)
+	if err != nil {
+		return "", err
+	}
+
+	if !security.ComparePassword(loginUser.Password, user.Password.Password, user.Password.Salt) {
+		return "", fmt.Errorf("invalid password")
+	}
+
+	return "test", nil
 }
