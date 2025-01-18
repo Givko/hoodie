@@ -2,6 +2,7 @@ package service
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/plamendelchev/hoodie/internal/api/contracts"
@@ -32,10 +33,11 @@ func (service *UserService) RegisterUser(createUser *contracts.CreateUser) error
 	}
 
 	user := domain.User{
-		Id:       uuid.New().String(),
-		Username: createUser.Username,
-		Password: *hashedPassword,
-		IsAdmin:  false,
+		Id:        uuid.New().String(),
+		Username:  createUser.Username,
+		Password:  *hashedPassword,
+		IsAdmin:   false,
+		CreatedAt: time.Now().UTC(),
 	}
 
 	return service.userRepository.Add(&user)

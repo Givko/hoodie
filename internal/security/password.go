@@ -9,7 +9,7 @@ import (
 	"golang.org/x/crypto/argon2"
 )
 
-var time = uint32(1)
+var times = uint32(1)
 var memory = uint32(2 * 1024)
 var threads = uint8(1)
 
@@ -24,7 +24,7 @@ func HashPassword(password string) (*domain.Password, error) {
 	keyLen := uint32(32)
 
 	// Derive the key
-	key := argon2.IDKey([]byte(password), salt, time, memory, threads, keyLen)
+	key := argon2.IDKey([]byte(password), salt, times, memory, threads, keyLen)
 
 	b64Salt := base64.RawStdEncoding.EncodeToString(salt)
 	b64Key := base64.RawStdEncoding.EncodeToString(key)
@@ -47,7 +47,7 @@ func ComparePassword(password string, b64HashedPwd string, b64Salt string) bool 
 	keyLen := uint32(len(expectedKey))
 
 	// Derive a new key from the given password and compare
-	newKey := argon2.IDKey([]byte(password), salt, time, memory, threads, keyLen)
+	newKey := argon2.IDKey([]byte(password), salt, times, memory, threads, keyLen)
 	if len(newKey) != len(expectedKey) {
 		return false
 	}
