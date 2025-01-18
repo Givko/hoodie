@@ -51,26 +51,26 @@ func AdminOnly() gin.HandlerFunc {
 		auth_header := c.GetHeader("Authorization")
 		auth_header = strings.TrimPrefix(auth_header, "Bearer ")
 		if auth_header == "" {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "JWT token is missing for Authorization header"})
 			return
 		}
 
 		token, err := security.VerifyToken(auth_header)
 		if err != nil {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 			return
 		}
 
 		claims, ok := token.Claims.(jwt.MapClaims)
 		if !ok {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid JWT Token"})
 			return
 		}
 
 		isAdmin := claims["admin"].(bool)
 
 		if !isAdmin {
-			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "unauthorized"})
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "User is not an admin"})
 			return
 		}
 

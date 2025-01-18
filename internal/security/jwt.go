@@ -13,7 +13,7 @@ func GenerateToken(user *domain.User) (string, error) {
 		"sub":   user.Username,
 		"admin": user.IsAdmin,
 		"iss":   "hoodie",
-		"exp":   time.Now().UTC().Add(time.Minute * 15).Unix(),
+		"exp":   time.Now().UTC().Add(time.Second * 15).Unix(),
 		"iat":   time.Now().UTC().Unix(),
 	})
 
