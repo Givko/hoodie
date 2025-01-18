@@ -21,12 +21,13 @@ func Init() *gin.Engine {
 	// router.Use(middleware.Recovery())
 
 	// Initialize routes
-	setupRoutes(router)
+	setupUsersApiRoutes(router)
+	setupAdminApiRoutes(router)
 
 	return router
 }
 
-func setupRoutes(router *gin.Engine) {
+func setupUsersApiRoutes(router *gin.Engine) {
 	user_in_memory_repository := in_memory.UserInMemoryRepository{}
 	user_service := service.NewUserService(user_in_memory_repository)
 	user_handler := handlers.NewUserHandler(user_service)
@@ -35,9 +36,11 @@ func setupRoutes(router *gin.Engine) {
 	api_users := router.Group("/api/users")
 	api_users.POST("/register", user_handler.RegisterUserHandler)
 	api_users.POST("/login", user_handler.LoginUserHandler)
+}
 
+func setupAdminApiRoutes(router *gin.Engine) {
 	api_admin := router.Group("/api/admin")
-	api_admin.Use(AdminOnly())
+	api_admin.Use(adminOnly())
 	api_admin.GET("/users", func(ctx *gin.Context) {
 		ctx.JSON(http.StatusOK, gin.H{"message": "admin route"})
 	})
@@ -45,9 +48,8 @@ func setupRoutes(router *gin.Engine) {
 	// You can also set up other route groups or standalone routes
 }
 
-func AdminOnly() gin.HandlerFunc {
+func adminOnly() gin.HandlerFunc {
 	return func(c *gin.Context) {
-
 		auth_header := c.GetHeader("Authorization")
 		auth_header = strings.TrimPrefix(auth_header, "Bearer ")
 		if auth_header == "" {
