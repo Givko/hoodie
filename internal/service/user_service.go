@@ -51,5 +51,10 @@ func (service *UserService) LoginUser(loginUser *contracts.LoginUser) (string, e
 		return "", fmt.Errorf("invalid password")
 	}
 
-	return "test", nil
+	jwt, err := security.GenerateToken(user)
+	if err != nil {
+		return "", err
+	}
+
+	return jwt, nil
 }
