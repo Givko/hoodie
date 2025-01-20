@@ -6,23 +6,33 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/gorilla/websocket"
 	"github.com/plamendelchev/hoodie/internal/api/handlers"
 	"github.com/plamendelchev/hoodie/internal/data/in_memory"
 	"github.com/plamendelchev/hoodie/internal/security"
 	"github.com/plamendelchev/hoodie/internal/service"
 )
 
+var upgrader = websocket.Upgrader{
+	ReadBufferSize:  1024,
+	WriteBufferSize: 1024,
+	CheckOrigin: func(r *http.Request) bool {
+		//TODO: Implement a proper check for the origin
+		return true
+	},
+}
+
 // Init initializes the Gin router with all routes and middleware.
 func Init() *gin.Engine {
 	router := gin.Default()
 
-	// Apply global middleware
-	// router.Use(middleware.Logger())
-	// router.Use(middleware.Recovery())
-
 	// Initialize routes
 	setupUsersApiRoutes(router)
 	setupAdminApiRoutes(router)
+
+	router.POST("/ws", func(ctx *gin.Context) {
+		ctx.JSON(http.StatusOK, gin.H{"message": "websocket route"})
+	})
 
 	return router
 }
@@ -40,7 +50,7 @@ func setupUsersApiRoutes(router *gin.Engine) {
 
 func setupAdminApiRoutes(router *gin.Engine) {
 	api_admin := router.Group("/api/admin")
-	api_admin.Use(adminOnly())
+	api_admin.Use(adminOnlyMiddleware())
 	api_admin.GET("/users", func(ctx *gin.Context) {
 		ctx.JSON(http.StatusOK, gin.H{"message": "admin route"})
 	})
@@ -48,7 +58,7 @@ func setupAdminApiRoutes(router *gin.Engine) {
 	// You can also set up other route groups or standalone routes
 }
 
-func adminOnly() gin.HandlerFunc {
+func adminOnlyMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		auth_header := c.GetHeader("Authorization")
 		auth_header = strings.TrimPrefix(auth_header, "Bearer ")
@@ -77,5 +87,13 @@ func adminOnly() gin.HandlerFunc {
 		}
 
 		c.Next()
+	}
+}
+
+func wsHandler(c *gin.Context) {
+	_, err := upgrader.Upgrade(c.Writer, c.Request, nil)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
 	}
 }
