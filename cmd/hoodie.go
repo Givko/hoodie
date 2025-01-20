@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/plamendelchev/hoodie/internal/router"
+	"github.com/plamendelchev/hoodie/internal/api/router"
 )
 
 func main() {
