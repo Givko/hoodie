@@ -31,12 +31,13 @@ type WsConnection struct {
 	hub        *Hub
 }
 
-func NewWsConnection(conn *websocket.Conn, hub *Hub) *WsConnection {
+func NewWsConnection(conn *websocket.Conn, hub *Hub, username string) *WsConnection {
 	return &WsConnection{
 		connection: conn,
 		id:         uuid.NewString(),
 		writer:     make(chan Message),
 		hub:        hub,
+		username:   username,
 	}
 }
 
@@ -55,7 +56,7 @@ func (w *WsConnection) runReader() {
 		if err != nil {
 			break
 		}
-
+		//w.connection.WriteJSON(message)
 		w.hub.broadcast <- message
 	}
 }

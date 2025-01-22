@@ -29,7 +29,8 @@ func (h *Hub) Run() {
 
 func (h *Hub) registerConn(conn *WsConnection) {
 	if client, ok := h.clients[conn.username]; !ok {
-		client = NewClient(conn.username, []*WsConnection{conn})
+		client = NewClient(conn.username)
+		client.addNewConnection(conn)
 		h.clients[conn.username] = client
 	} else {
 		client.addNewConnection(conn)
@@ -38,7 +39,7 @@ func (h *Hub) registerConn(conn *WsConnection) {
 
 func (h *Hub) broadcastMessage(message Message) {
 
-	client, ok := h.clients[message.Username]
+	client, ok := h.clients[message.Recipient]
 	if !ok {
 		//TODO: log error
 		return

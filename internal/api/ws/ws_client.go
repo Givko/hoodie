@@ -5,10 +5,10 @@ type Client struct {
 	connections []*WsConnection
 }
 
-func NewClient(username string, conn []*WsConnection) *Client {
+func NewClient(username string) *Client {
 	return &Client{
 		username:    username,
-		connections: conn,
+		connections: make([]*WsConnection, 0),
 	}
 }
 

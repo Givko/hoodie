@@ -8,6 +8,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/gorilla/websocket"
 	"github.com/plamendelchev/hoodie/internal/api/handlers"
+	"github.com/plamendelchev/hoodie/internal/api/ws"
 	"github.com/plamendelchev/hoodie/internal/data/in_memory"
 	"github.com/plamendelchev/hoodie/internal/security"
 	"github.com/plamendelchev/hoodie/internal/service"
@@ -21,6 +22,7 @@ var upgrader = websocket.Upgrader{
 		return true
 	},
 }
+var Hub = ws.NewHub()
 
 // Init initializes the Gin router with all routes and middleware.
 func Init() *gin.Engine {
@@ -30,9 +32,8 @@ func Init() *gin.Engine {
 	setupUsersApiRoutes(router)
 	setupAdminApiRoutes(router)
 
-	router.POST("/ws", func(ctx *gin.Context) {
-		ctx.JSON(http.StatusOK, gin.H{"message": "websocket route"})
-	})
+	router.GET("/ws", wsHandler)
+	go Hub.Run()
 
 	return router
 }
@@ -91,9 +92,23 @@ func adminOnlyMiddleware() gin.HandlerFunc {
 }
 
 func wsHandler(c *gin.Context) {
-	_, err := upgrader.Upgrade(c.Writer, c.Request, nil)
+	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+
+	/*	for {
+		message := ws.Message{}
+		err := conn.ReadJSON(&message)
+		if err != nil {
+			break
+		}
+
+		conn.WriteJSON(message)
+	}*/
+
+	username := c.Query("username")
+	wsConn := ws.NewWsConnection(conn, Hub, username)
+	Hub.Register <- wsConn
 }
