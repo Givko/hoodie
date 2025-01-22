@@ -142,7 +142,7 @@ func wsHandler(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error while parsing username"})
 		return
 	}
-
+	//Test
 	wsConn := ws.NewWsConnection(conn, Hub, usernameStr)
 	Hub.Register <- wsConn
 }
