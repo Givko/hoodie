@@ -137,16 +137,6 @@ func wsHandler(c *gin.Context) {
 		return
 	}
 
-	/*	for {
-		message := ws.Message{}
-		err := conn.ReadJSON(&message)
-		if err != nil {
-			break
-		}
-
-		conn.WriteJSON(message)
-	}*/
-
 	usernameStr, ok := username.(string)
 	if !ok {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error while parsing username"})
