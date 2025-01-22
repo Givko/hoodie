@@ -31,11 +31,17 @@ func Init() *gin.Engine {
 	// Initialize routes
 	setupUsersApiRoutes(router)
 	setupAdminApiRoutes(router)
+	setupWebsocketRoutes(router)
 
-	router.GET("/ws", wsHandler)
 	go Hub.Run()
 
 	return router
+}
+
+func setupWebsocketRoutes(router *gin.Engine) {
+	ws := router.Group("/ws")
+	ws.Use(isLoggedMiddleware())
+	ws.GET("/connect", wsHandler)
 }
 
 func setupUsersApiRoutes(router *gin.Engine) {
@@ -57,6 +63,33 @@ func setupAdminApiRoutes(router *gin.Engine) {
 	})
 
 	// You can also set up other route groups or standalone routes
+}
+
+func isLoggedMiddleware() gin.HandlerFunc {
+
+	return func(c *gin.Context) {
+		auth_header := c.GetHeader("Authorization")
+		auth_header = strings.TrimPrefix(auth_header, "Bearer ")
+		if auth_header == "" {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "JWT token is missing for Authorization header"})
+			return
+		}
+
+		token, err := security.VerifyToken(auth_header)
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+			return
+		}
+
+		claims, ok := token.Claims.(jwt.MapClaims)
+		if !ok {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid JWT Token"})
+			return
+		}
+
+		c.Set("username", claims["sub"])
+		c.Next()
+	}
 }
 
 func adminOnlyMiddleware() gin.HandlerFunc {
@@ -92,6 +125,12 @@ func adminOnlyMiddleware() gin.HandlerFunc {
 }
 
 func wsHandler(c *gin.Context) {
+	username, exists := c.Get("username")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized access"})
+		return
+	}
+
 	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -108,7 +147,12 @@ func wsHandler(c *gin.Context) {
 		conn.WriteJSON(message)
 	}*/
 
-	username := c.Query("username")
-	wsConn := ws.NewWsConnection(conn, Hub, username)
+	usernameStr, ok := username.(string)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error while parsing username"})
+		return
+	}
+
+	wsConn := ws.NewWsConnection(conn, Hub, usernameStr)
 	Hub.Register <- wsConn
 }
