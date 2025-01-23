@@ -114,7 +114,6 @@ func adminOnlyMiddleware() gin.HandlerFunc {
 		}
 
 		isAdmin := claims["admin"].(bool)
-
 		if !isAdmin {
 			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "User is not an admin"})
 			return
