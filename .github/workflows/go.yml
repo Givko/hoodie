@@ -29,4 +29,4 @@ jobs:
     - name: Run tests
       run: |
         set -euo pipefail
-        go test -json -v ./... 2>&1 | tee /tmp/gotest.log | gotestfmt
+        go test -cover -json -v ./... 2>&1 | tee /tmp/gotest.log | gotestfmt
