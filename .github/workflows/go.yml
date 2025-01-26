@@ -21,12 +21,11 @@ jobs:
     - name: Build
       run: go build -v ./...
 
-     # Alternatively, install using go install
     - name: Set up gotestfmt
       run: go install github.com/gotesttools/gotestfmt/v2/cmd/gotestfmt@latest
 
-  # Run tests with nice formatting. Save the original log in /tmp/gotest.log
+  # Run tests with nice formatting. 
     - name: Run tests
       run: |
         set -euo pipefail
-        go test -cover -json -v ./... 2>&1 | tee /tmp/gotest.log | gotestfmt
+        go test -cover -json -v ./... 2>&1 | gotestfmt
