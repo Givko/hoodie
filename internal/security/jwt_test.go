@@ -23,7 +23,6 @@ func TestGenerateToken_Generate_Verify_CustomClaims(t *testing.T) {
 		t.Fatalf("GenerateToken() token is empty")
 	}
 
-	t.Logf("Token: %s", token)
 	verifyToken, err := security.VerifyToken(token)
 	if err != nil {
 		t.Fatalf("VerifyToken() error = %v", err.Error())
@@ -33,7 +32,6 @@ func TestGenerateToken_Generate_Verify_CustomClaims(t *testing.T) {
 		t.Fatalf("VerifyToken() token is nil")
 	}
 
-	t.Logf("VerifyToken: %v", verifyToken)
 	claims, ok := verifyToken.Claims.(jwt.MapClaims)
 	if !ok {
 		t.Fatalf("VerifyToken() claims is not jwt.MapClaims")
