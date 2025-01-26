@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/plamendelchev/hoodie/internal/domain"
+	"github.com/givko/hoodie/internal/domain"
 )
 
 var users = sync.Map{}

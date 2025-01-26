@@ -3,7 +3,7 @@ package security_test
 import (
 	"testing"
 
-	"github.com/plamendelchev/hoodie/internal/security"
+	"github.com/givko/hoodie/internal/security"
 )
 
 func TestHashPassword(t *testing.T) {

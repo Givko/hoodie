@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/plamendelchev/hoodie/internal/api/contracts"
+	"github.com/givko/hoodie/internal/api/contracts"
 )
 
 type UserService interface {

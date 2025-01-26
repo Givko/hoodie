@@ -3,8 +3,8 @@ package security
 import (
 	"time"
 
+	"github.com/givko/hoodie/internal/domain"
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/plamendelchev/hoodie/internal/domain"
 )
 
 // GenerateToken generates a JWT token.

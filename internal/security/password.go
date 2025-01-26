@@ -5,7 +5,7 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 
-	"github.com/plamendelchev/hoodie/internal/domain"
+	"github.com/givko/hoodie/internal/domain"
 	"golang.org/x/crypto/argon2"
 )
 

@@ -1,4 +1,4 @@
-module github.com/plamendelchev/hoodie
+module github.com/givko/hoodie
 
 go 1.23.4
 

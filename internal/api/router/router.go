@@ -5,13 +5,13 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/givko/hoodie/internal/api/handlers"
+	"github.com/givko/hoodie/internal/api/ws"
+	"github.com/givko/hoodie/internal/data/in_memory"
+	"github.com/givko/hoodie/internal/security"
+	"github.com/givko/hoodie/internal/service"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/gorilla/websocket"
-	"github.com/plamendelchev/hoodie/internal/api/handlers"
-	"github.com/plamendelchev/hoodie/internal/api/ws"
-	"github.com/plamendelchev/hoodie/internal/data/in_memory"
-	"github.com/plamendelchev/hoodie/internal/security"
-	"github.com/plamendelchev/hoodie/internal/service"
 )
 
 var upgrader = websocket.Upgrader{

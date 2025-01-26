@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/givko/hoodie/internal/api/contracts"
+	"github.com/givko/hoodie/internal/domain"
+	"github.com/givko/hoodie/internal/security"
 	"github.com/google/uuid"
-	"github.com/plamendelchev/hoodie/internal/api/contracts"
-	"github.com/plamendelchev/hoodie/internal/domain"
-	"github.com/plamendelchev/hoodie/internal/security"
 )
 
 type UserRepository interface {
