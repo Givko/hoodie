@@ -18,7 +18,6 @@ var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
 	CheckOrigin: func(r *http.Request) bool {
-		//TODO: Implement a proper check for the origin
 		return true
 	},
 }
@@ -53,6 +52,11 @@ func setupUsersApiRoutes(router *gin.Engine) {
 	api_users := router.Group("/api/users")
 	api_users.POST("/register", user_handler.RegisterUserHandler)
 	api_users.POST("/login", user_handler.LoginUserHandler)
+
+	// User list route subgroup requires the user to be logged in
+	api_users_list := api_users.Group("/list")
+	api_users_list.Use(isLoggedMiddleware())
+	api_users_list.GET("/all", user_handler.ListUsersHandler)
 }
 
 func setupAdminApiRoutes(router *gin.Engine) {

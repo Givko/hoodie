@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package message;
+
+// Replace the path below with the actual path in which you want your generated Go code to live.
+// The part after the semicolon is the local package name (alias) used in `import` statements.
+option go_package = "github.com/givko/hoodie/pkg/proto;message";
+
+message Message {
+    string sender = 1[json_name = "sender"];
+    string recipient = 2[json_name = "recipient"];
+    string content = 3[json_name = "content"];
+}

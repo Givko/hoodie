@@ -10,6 +10,7 @@ import (
 type UserService interface {
 	RegisterUser(createUser *contracts.CreateUser) error
 	LoginUser(loginUser *contracts.LoginUser) (string, error)
+	ListUsers() ([]contracts.ListUser, error)
 }
 
 type UserHandler struct {
@@ -55,4 +56,14 @@ func (handler *UserHandler) LoginUserHandler(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusCreated, gin.H{"jwt": jwt})
+}
+
+func (handler *UserHandler) ListUsersHandler(c *gin.Context) {
+	users, err := handler.service.ListUsers()
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"users": users})
 }

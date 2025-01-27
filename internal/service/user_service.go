@@ -13,6 +13,7 @@ import (
 type UserRepository interface {
 	Add(user *domain.User) error
 	Get(username string) (*domain.User, error)
+	GetAll() ([]domain.User, error)
 }
 
 // UserService is a service that handles user-related operations.
@@ -59,4 +60,18 @@ func (service *UserService) LoginUser(loginUser *contracts.LoginUser) (string, e
 	}
 
 	return jwt, nil
+}
+
+func (service *UserService) ListUsers() ([]contracts.ListUser, error) {
+	users, err := service.userRepository.GetAll()
+	if err != nil {
+		return nil, err
+	}
+
+	var listUsers []contracts.ListUser
+	for _, user := range users {
+		listUsers = append(listUsers, contracts.ListUser{Username: user.Username})
+	}
+
+	return listUsers, nil
 }

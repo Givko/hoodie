@@ -40,3 +40,20 @@ func (repo UserInMemoryRepository) Get(username string) (dbValue *domain.User, e
 
 	return user, nil
 }
+
+// GetAll returns all users.
+func (repo UserInMemoryRepository) GetAll() (usersList []domain.User, err error) {
+	usersList = []domain.User{}
+
+	users.Range(func(key, value interface{}) bool {
+		user, ok := value.(*domain.User)
+		if !ok {
+			return true
+		}
+
+		usersList = append(usersList, *user)
+		return true
+	})
+
+	return usersList, nil
+}
