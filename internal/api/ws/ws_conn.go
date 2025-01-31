@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
+	"google.golang.org/protobuf/proto"
 )
 
 // TODO: make this configurable
@@ -27,7 +28,7 @@ type WsConnection struct {
 	id         string
 	username   string
 	connection *websocket.Conn
-	writer     chan Message
+	writer     chan ChatMessage
 	hub        *Hub
 }
 
@@ -35,7 +36,7 @@ func NewWsConnection(conn *websocket.Conn, hub *Hub, username string) *WsConnect
 	return &WsConnection{
 		connection: conn,
 		id:         uuid.NewString(),
-		writer:     make(chan Message),
+		writer:     make(chan ChatMessage),
 		hub:        hub,
 		username:   username,
 	}
@@ -51,12 +52,10 @@ func (w *WsConnection) runReader() {
 		return nil
 	})
 	for {
-		var message Message
-		err := w.connection.ReadJSON(&message)
+		message, err := w.readProtobufMessage()
 		if err != nil {
 			break
 		}
-		//w.connection.WriteJSON(message)
 		w.hub.broadcast <- message
 	}
 }
@@ -79,7 +78,7 @@ func (w *WsConnection) runWriter() {
 					w.connection.WriteMessage(websocket.CloseMessage, []byte{})
 					return
 				} else {
-					err := w.connection.WriteJSON(message)
+					err := w.writeProtobufMessage(message)
 					if err != nil {
 						fmt.Println("Error: ", err.Error())
 						break
@@ -95,4 +94,46 @@ func (w *WsConnection) runWriter() {
 			}
 		}
 	}
+}
+
+func (w *WsConnection) readProtobufMessage() (ChatMessage, error) {
+	typeId, message, err := w.connection.ReadMessage()
+	if err != nil {
+		return ChatMessage{}, err
+	}
+
+	if typeId != websocket.BinaryMessage {
+		return ChatMessage{}, fmt.Errorf("unexpected message type: %d", typeId)
+	}
+
+	unmarshaledMessage := Message{}
+	err = proto.Unmarshal(message, &unmarshaledMessage)
+	if err != nil {
+		return ChatMessage{}, err
+	}
+
+	return ChatMessage{
+		Sender:    unmarshaledMessage.Sender,
+		Content:   unmarshaledMessage.Content,
+		Recipient: unmarshaledMessage.Recipient,
+	}, nil
+}
+
+func (w *WsConnection) writeProtobufMessage(message ChatMessage) error {
+	marshaledMessage, err := proto.Marshal(&Message{
+		Sender:    message.Sender,
+		Recipient: message.Recipient,
+		Content:   message.Content,
+	})
+	if err != nil {
+		return err
+	}
+
+	return w.connection.WriteMessage(websocket.BinaryMessage, marshaledMessage)
+}
+
+type ChatMessage struct {
+	Sender    string
+	Recipient string
+	Content   string
 }

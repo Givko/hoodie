@@ -2,7 +2,7 @@ package ws
 
 type Hub struct {
 	clients    map[string]*Client
-	broadcast  chan Message
+	broadcast  chan ChatMessage
 	Register   chan *WsConnection
 	unregister chan *WsConnection
 }
@@ -10,7 +10,7 @@ type Hub struct {
 func NewHub() *Hub {
 	return &Hub{
 		clients:    make(map[string]*Client),
-		broadcast:  make(chan Message),
+		broadcast:  make(chan ChatMessage),
 		Register:   make(chan *WsConnection),
 		unregister: make(chan *WsConnection),
 	}
@@ -37,7 +37,7 @@ func (h *Hub) registerConn(conn *WsConnection) {
 	}
 }
 
-func (h *Hub) broadcastMessage(message Message) {
+func (h *Hub) broadcastMessage(message ChatMessage) {
 
 	client, ok := h.clients[message.Recipient]
 	if !ok {

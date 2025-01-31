@@ -19,7 +19,7 @@ func (c *Client) addNewConnection(conn *WsConnection) {
 	go conn.runReader()
 }
 
-func (c *Client) writeJson(message Message) {
+func (c *Client) writeJson(message ChatMessage) {
 	for _, conn := range c.connections {
 		conn.writer <- message
 	}
