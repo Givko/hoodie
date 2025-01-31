@@ -1,4 +1,4 @@
-package ws
+package proto
 
 import (
 	reflect "reflect"

@@ -1,8 +1,10 @@
 package ws
 
+import "github.com/givko/hoodie/internal/domain"
+
 type Hub struct {
 	clients    map[string]*Client
-	broadcast  chan ChatMessage
+	broadcast  chan domain.ChatMessage
 	Register   chan *WsConnection
 	unregister chan *WsConnection
 }
@@ -10,12 +12,14 @@ type Hub struct {
 func NewHub() *Hub {
 	return &Hub{
 		clients:    make(map[string]*Client),
-		broadcast:  make(chan ChatMessage),
+		broadcast:  make(chan domain.ChatMessage),
 		Register:   make(chan *WsConnection),
 		unregister: make(chan *WsConnection),
 	}
 }
 
+// Run starts the hub
+// It listens for new connections and messages to broadcast
 func (h *Hub) Run() {
 	for {
 		select {
@@ -27,6 +31,9 @@ func (h *Hub) Run() {
 	}
 }
 
+// registerConn registers a new connection
+// It creates a new client if it does not exist and adds the connection to it
+// otherwise it adds the connection to the existing client
 func (h *Hub) registerConn(conn *WsConnection) {
 	if client, ok := h.clients[conn.username]; !ok {
 		client = NewClient(conn.username)
@@ -37,7 +44,9 @@ func (h *Hub) registerConn(conn *WsConnection) {
 	}
 }
 
-func (h *Hub) broadcastMessage(message ChatMessage) {
+// broadcastMessage broadcasts a message to the recipient
+// It finds the client by the recipient username and sends the message to all connections of the client
+func (h *Hub) broadcastMessage(message domain.ChatMessage) {
 
 	client, ok := h.clients[message.Recipient]
 	if !ok {
@@ -45,5 +54,5 @@ func (h *Hub) broadcastMessage(message ChatMessage) {
 		return
 	}
 
-	client.writeJson(message)
+	client.writeMessage(message)
 }
