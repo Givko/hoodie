@@ -6,7 +6,7 @@ import (
 
 	"github.com/givko/hoodie/internal/api/contracts"
 	"github.com/givko/hoodie/internal/domain"
-	"github.com/givko/hoodie/internal/security"
+	"github.com/givko/hoodie/internal/infrastructure/security"
 	"github.com/google/uuid"
 )
 

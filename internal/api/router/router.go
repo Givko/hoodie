@@ -7,8 +7,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/givko/hoodie/internal/api/handlers"
 	"github.com/givko/hoodie/internal/api/ws"
-	"github.com/givko/hoodie/internal/data/in_memory"
-	"github.com/givko/hoodie/internal/security"
+	"github.com/givko/hoodie/internal/api/ws/connection"
+	"github.com/givko/hoodie/internal/infrastructure/data/in_memory"
+	"github.com/givko/hoodie/internal/infrastructure/security"
 	"github.com/givko/hoodie/internal/service"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/gorilla/websocket"
@@ -146,6 +147,7 @@ func wsHandler(c *gin.Context) {
 		return
 	}
 
-	wsConn := ws.NewWsConnection(conn, Hub, usernameStr)
-	Hub.Register <- wsConn
+	connectionWrapper := connection.NewConnectionWrapper(conn)
+	wsHandler := ws.NewWsHandler(connectionWrapper, Hub, usernameStr)
+	Hub.Register(wsHandler)
 }

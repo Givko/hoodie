@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/givko/hoodie/internal/domain"
-	"github.com/givko/hoodie/internal/security"
+	"github.com/givko/hoodie/internal/infrastructure/security"
 	"github.com/golang-jwt/jwt/v5"
 )
 

@@ -3,29 +3,30 @@ package ws
 import "github.com/givko/hoodie/internal/domain"
 
 type Client struct {
-	username    string
-	connections []*WsConnection
+	username string
+	handlers []WsHandlerInterface
 }
 
-func NewClient(username string) *Client {
+var _ WsClientInterface = (*Client)(nil)
+
+func NewClient(username string) WsClientInterface {
 	return &Client{
-		username:    username,
-		connections: make([]*WsConnection, 0),
+		username: username,
+		handlers: make([]WsHandlerInterface, 0),
 	}
 }
 
 // addNewConnection adds a new connection to the client
 // It starts the writer and reader goroutines
-func (c *Client) addNewConnection(conn *WsConnection) {
-	c.connections = append(c.connections, conn)
+func (c *Client) AddNewConnection(handler WsHandlerInterface) {
+	c.handlers = append(c.handlers, handler)
 
-	go conn.runWriter()
-	go conn.runReader()
+	go handler.Run()
 }
 
 // writeMessage writes a message to all connections of the client
-func (c *Client) writeMessage(message domain.ChatMessage) {
-	for _, conn := range c.connections {
-		conn.writer <- message
+func (c *Client) WriteMessage(message *domain.ChatMessage) {
+	for _, handler := range c.handlers {
+		handler.WriteMessage(message)
 	}
 }
