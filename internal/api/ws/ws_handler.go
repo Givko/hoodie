@@ -2,6 +2,7 @@ package ws
 
 import (
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/givko/hoodie/internal/api/ws/connection"
@@ -28,20 +29,24 @@ type WebSocketHandler struct {
 	id         string
 	username   string
 	connection connection.WsConnectionInterface
-	writer     chan *domain.ChatMessage
-	hub        *Hub
+	writer     chan domain.ChatMessage
+	client     WsClientInterface
 }
 
 var _ WsHandlerInterface = (*WebSocketHandler)(nil)
 
-func NewWsHandler(conn connection.WsConnectionInterface, hub *Hub, username string) *WebSocketHandler {
+func NewWsHandler(conn connection.WsConnectionInterface, username string) *WebSocketHandler {
 	return &WebSocketHandler{
 		connection: conn,
 		id:         uuid.NewString(),
-		writer:     make(chan *domain.ChatMessage),
-		hub:        hub,
+		writer:     make(chan domain.ChatMessage),
+		client:     nil,
 		username:   username,
 	}
+}
+
+func (w *WebSocketHandler) SetClient(client WsClientInterface) {
+	w.client = client
 }
 
 func (w *WebSocketHandler) GetUsername() (string, error) {
@@ -53,7 +58,7 @@ func (w *WebSocketHandler) Run() {
 	go w.runWriter()
 }
 
-func (w *WebSocketHandler) WriteMessage(message *domain.ChatMessage) error {
+func (w *WebSocketHandler) WriteMessage(message domain.ChatMessage) error {
 	w.writer <- message
 	return nil
 }
@@ -62,7 +67,7 @@ func (w *WebSocketHandler) WriteMessage(message *domain.ChatMessage) error {
 // It starts listening for messages from the websocket connection
 // and broadcasts them to the hub
 func (w *WebSocketHandler) runReader() {
-	defer w.connection.Close()
+	defer w.Close()
 
 	w.connection.SetReadLimit(maxMessageSize)
 	w.connection.SetReadDeadline(time.Now().Add(pongWait))
@@ -76,7 +81,7 @@ func (w *WebSocketHandler) runReader() {
 			break
 		}
 
-		w.hub.Broadcast(message)
+		w.client.Broadcast(message)
 	}
 }
 
@@ -86,7 +91,7 @@ func (w *WebSocketHandler) runWriter() {
 	ticker := time.NewTicker(pingPeriod)
 	defer func() {
 		ticker.Stop()
-		w.connection.Close()
+		w.Close()
 	}()
 
 	for {
@@ -95,9 +100,8 @@ func (w *WebSocketHandler) runWriter() {
 			{
 				w.connection.SetWriteDeadline(time.Now().Add(writeWait))
 				if !ok {
-
-					// The hub closed the channel.
 					w.connection.WriteCloseMessage()
+					w.client.Close(w)
 					return
 				} else {
 					err := w.WriteMessage(message)
@@ -116,4 +120,14 @@ func (w *WebSocketHandler) runWriter() {
 			}
 		}
 	}
+}
+
+func (w *WebSocketHandler) GetId() (string, error) {
+	return w.id, nil
+}
+
+func (w *WebSocketHandler) Close() error {
+	f := sync.OnceFunc(func() { w.connection.Close() })
+	f()
+	return nil
 }

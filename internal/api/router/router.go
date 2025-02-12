@@ -148,6 +148,6 @@ func wsHandler(c *gin.Context) {
 	}
 
 	connectionWrapper := connection.NewConnectionWrapper(conn)
-	wsHandler := ws.NewWsHandler(connectionWrapper, Hub, usernameStr)
+	wsHandler := ws.NewWsHandler(connectionWrapper, usernameStr)
 	Hub.Register(wsHandler)
 }
