@@ -104,7 +104,7 @@ func (w *WebSocketHandler) runWriter() {
 					w.client.Close(w)
 					return
 				} else {
-					err := w.WriteMessage(message)
+					err := w.connection.WriteMessage(message)
 					if err != nil {
 						fmt.Println("Error: ", err.Error())
 						break
