@@ -31,6 +31,7 @@ type WebSocketHandler struct {
 	connection connection.WsConnectionInterface
 	writer     chan domain.ChatMessage
 	client     WsClientInterface
+	closeOnce  sync.Once
 }
 
 var _ WsHandlerInterface = (*WebSocketHandler)(nil)
@@ -127,7 +128,10 @@ func (w *WebSocketHandler) GetId() (string, error) {
 }
 
 func (w *WebSocketHandler) Close() error {
-	f := sync.OnceFunc(func() { w.connection.Close() })
-	f()
+	w.closeOnce.Do(func() {
+		if err := w.connection.Close(); err != nil {
+			//log.Printf("Error closing connection: %v", err)
+		}
+	})
 	return nil
 }

@@ -64,14 +64,14 @@ func (h *Hub) registerConn(conn WsHandlerInterface) {
 		return
 	}
 
-	client, ok := h.getClient(username)
-	if !ok {
-		client := NewClient(username, h)
-		client.AddNewConnection(conn)
-		h.clients.LoadOrStore(username, client)
-	} else {
-		client.AddNewConnection(conn)
-	}
+	// Create a new client candidate.
+	newClient := NewClient(username, h)
+
+	// Atomically store or retrieve the client.
+	actual, _ := h.clients.LoadOrStore(username, newClient)
+	client := actual.(*Client)
+
+	client.AddNewConnection(conn)
 }
 
 // broadcastMessage broadcasts a message to the recipient
