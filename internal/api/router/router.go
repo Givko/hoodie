@@ -11,6 +11,7 @@ import (
 	"github.com/givko/hoodie/internal/infrastructure/data/in_memory"
 	"github.com/givko/hoodie/internal/infrastructure/security"
 	"github.com/givko/hoodie/internal/service"
+	"github.com/go-logr/logr"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/gorilla/websocket"
 )
@@ -25,16 +26,17 @@ var upgrader = websocket.Upgrader{
 var Hub = ws.NewHub()
 
 // Init initializes the Gin router with all routes and middleware.
-func Init() *gin.Engine {
+func Init(log logr.Logger) *gin.Engine {
 	router := gin.Default()
 
 	// Initialize routes
 	setupUsersApiRoutes(router)
 	setupAdminApiRoutes(router)
 	setupWebsocketRoutes(router)
+	log.Info("Routes initialized")
 
 	go Hub.Run()
-
+	log.Info("Websocket hub started")
 	return router
 }
 
