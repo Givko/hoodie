@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/givko/hoodie/internal/domain"
+	"github.com/givko/hoodie/internal/infrastructure/utils"
 	"github.com/go-logr/logr"
 )
 
@@ -59,11 +60,22 @@ func (c *Client) WriteMessage(message domain.ChatMessage) {
 // Close closes the provided connection
 func (c *Client) Close(conn WsHandlerInterface) error {
 	id, _ := conn.GetId()
-	c.handlers.Delete(id)
 	err := conn.Close()
 	if err != nil {
 		c.logger.Error(err, "error closing connection", "username", c.username)
 		return err
+	}
+
+	c.handlers.Delete(id)
+	isEmpty := utils.IsEmpty(&c.handlers)
+	if isEmpty {
+		fmt.Println("The sync.Map is empty")
+	} else {
+		fmt.Println("The sync.Map is not empty")
+	}
+
+	if isEmpty {
+		c.hub.Unregister(c)
 	}
 
 	return nil
@@ -72,4 +84,9 @@ func (c *Client) Close(conn WsHandlerInterface) error {
 // Broadcast sends a message to the central hub
 func (c *Client) Broadcast(message domain.ChatMessage) {
 	c.hub.Broadcast(message)
+}
+
+// GetUsername returns the username of the client
+func (c *Client) GetUsername() (string, error) {
+	return c.username, nil
 }

@@ -11,7 +11,7 @@ type Hub struct {
 	clients    sync.Map
 	broadcast  chan domain.ChatMessage
 	register   chan WsHandlerInterface
-	unregister chan WsHandlerInterface
+	unregister chan WsClientInterface
 	logger     logr.Logger
 }
 
@@ -20,9 +20,9 @@ var _ WsHubInterface = (*Hub)(nil)
 func NewHub(logger logr.Logger) *Hub {
 	return &Hub{
 		clients:    sync.Map{},
-		broadcast:  make(chan domain.ChatMessage),
-		register:   make(chan WsHandlerInterface),
-		unregister: make(chan WsHandlerInterface),
+		broadcast:  make(chan domain.ChatMessage, 256),
+		register:   make(chan WsHandlerInterface, 256),
+		unregister: make(chan WsClientInterface, 256),
 		logger:     logger,
 	}
 }
@@ -38,7 +38,7 @@ func (h *Hub) Register(conn WsHandlerInterface) {
 }
 
 // Unregister unregisters a connection
-func (h *Hub) Unregister(conn WsHandlerInterface) {
+func (h *Hub) Unregister(conn WsClientInterface) {
 	h.unregister <- conn
 }
 
@@ -88,8 +88,14 @@ func (h *Hub) broadcastMessage(message domain.ChatMessage) {
 	client.WriteMessage(message)
 }
 
-func (h *Hub) unregisterConn(conn WsHandlerInterface) {
+func (h *Hub) unregisterConn(conn WsClientInterface) {
+	username, err := conn.GetUsername()
+	if err != nil {
+		h.logger.Error(err, "error getting username from client")
+		return
+	}
 
+	h.clients.Delete(username)
 }
 
 func (h *Hub) getClient(username string) (*Client, bool) {

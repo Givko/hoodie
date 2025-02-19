@@ -7,4 +7,5 @@ type WsClientInterface interface {
 	AddNewConnection(conn WsHandlerInterface)
 	Close(conn WsHandlerInterface) error
 	Broadcast(message domain.ChatMessage)
+	GetUsername() (string, error)
 }
