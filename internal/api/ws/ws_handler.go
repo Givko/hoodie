@@ -37,14 +37,15 @@ type WebSocketHandler struct {
 
 var _ WsHandlerInterface = (*WebSocketHandler)(nil)
 
-func NewWsHandler(conn connection.WsConnectionInterface, username string, log logr.Logger) *WebSocketHandler {
+func NewWsHandler(conn connection.WsConnectionInterface, username string, client WsClientInterface, log logr.Logger) *WebSocketHandler {
+	id := uuid.NewString()
 	return &WebSocketHandler{
 		connection: conn,
-		id:         uuid.NewString(),
+		id:         id,
 		writer:     make(chan domain.ChatMessage),
-		client:     nil,
+		client:     client,
 		username:   username,
-		logger:     log,
+		logger:     log.WithName("ws_handler").WithValues("id", id, "username", username),
 	}
 }
 
@@ -57,8 +58,11 @@ func (w *WebSocketHandler) GetUsername() (string, error) {
 }
 
 func (w *WebSocketHandler) Run() {
+	w.logger.Info("Starting websocket handler")
 	go w.runReader()
 	go w.runWriter()
+
+	w.logger.Info("Websocket handler started")
 }
 
 func (w *WebSocketHandler) WriteMessage(message domain.ChatMessage) error {

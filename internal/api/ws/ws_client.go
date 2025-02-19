@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/givko/hoodie/internal/api/ws/connection"
 	"github.com/givko/hoodie/internal/domain"
 	"github.com/givko/hoodie/internal/infrastructure/utils"
 	"github.com/go-logr/logr"
@@ -23,18 +24,20 @@ func NewClient(username string, hub WsHubInterface, logger logr.Logger) WsClient
 		username: username,
 		handlers: sync.Map{},
 		hub:      hub,
-		logger:   logger,
+		logger:   logger.WithName("ws_client").WithValues("username", username),
 	}
 }
 
 // addNewConnection adds a new connection to the client
 // It starts the writer and reader goroutines
-func (c *Client) AddNewConnection(handler WsHandlerInterface) {
+func (c *Client) AddNewConnection(conn connection.WsConnectionInterface) {
+	c.logger.Info("adding new connection")
+	handler := NewWsHandler(conn, c.username, c, c.logger)
 	id, _ := handler.GetId()
-	handler.SetClient(c)
 	c.handlers.Store(id, handler)
 
 	go handler.Run()
+	c.logger.Info("new connection added", "id", id)
 }
 
 // writeMessage writes a message to all connections of the client
@@ -49,7 +52,8 @@ func (c *Client) WriteMessage(message domain.ChatMessage) {
 
 		err := handler.WriteMessage(message)
 		if err != nil {
-			c.logger.Error(err, "error writing message", "username", c.username, "message", message, "handler", handler)
+			id, _ := handler.GetId()
+			c.logger.Error(err, "error writing message", "message", message, "handler", id)
 			return true
 		}
 

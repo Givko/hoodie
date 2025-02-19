@@ -3,6 +3,7 @@ package ws
 import (
 	"sync"
 
+	"github.com/givko/hoodie/internal/api/ws/connection"
 	"github.com/givko/hoodie/internal/domain"
 	"github.com/go-logr/logr"
 )
@@ -10,9 +11,14 @@ import (
 type Hub struct {
 	clients    sync.Map
 	broadcast  chan domain.ChatMessage
-	register   chan WsHandlerInterface
+	register   chan RegisterPair
 	unregister chan WsClientInterface
 	logger     logr.Logger
+}
+
+type RegisterPair struct {
+	Username string
+	Conn     connection.WsConnectionInterface
 }
 
 var _ WsHubInterface = (*Hub)(nil)
@@ -21,9 +27,9 @@ func NewHub(logger logr.Logger) *Hub {
 	return &Hub{
 		clients:    sync.Map{},
 		broadcast:  make(chan domain.ChatMessage, 256),
-		register:   make(chan WsHandlerInterface, 256),
+		register:   make(chan RegisterPair, 256),
 		unregister: make(chan WsClientInterface, 256),
-		logger:     logger,
+		logger:     logger.WithName("ws_hub"),
 	}
 }
 
@@ -33,7 +39,7 @@ func (h *Hub) Broadcast(message domain.ChatMessage) {
 }
 
 // Register registers a new connection
-func (h *Hub) Register(conn WsHandlerInterface) {
+func (h *Hub) Register(conn RegisterPair) {
 	h.register <- conn
 }
 
@@ -60,12 +66,9 @@ func (h *Hub) Run() {
 // registerConn registers a new connection
 // It creates a new client if it does not exist and adds the connection to it
 // otherwise it adds the connection to the existing client
-func (h *Hub) registerConn(conn WsHandlerInterface) {
-	username, err := conn.GetUsername()
-	if err != nil {
-		// TODO log error
-		return
-	}
+func (h *Hub) registerConn(registerPair RegisterPair) {
+	h.logger.Info("registering new connection", "username", registerPair.Username)
+	username := registerPair.Username
 
 	// Create a new client candidate.
 	newClient := NewClient(username, h, h.logger)
@@ -74,7 +77,8 @@ func (h *Hub) registerConn(conn WsHandlerInterface) {
 	actual, _ := h.clients.LoadOrStore(username, newClient)
 	client := actual.(*Client)
 
-	client.AddNewConnection(conn)
+	client.AddNewConnection(registerPair.Conn)
+	h.logger.Info("registered new connection", "username", registerPair.Username)
 }
 
 // broadcastMessage broadcasts a message to the recipient
