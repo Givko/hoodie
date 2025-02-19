@@ -5,21 +5,24 @@ import (
 	"sync"
 
 	"github.com/givko/hoodie/internal/domain"
+	"github.com/go-logr/logr"
 )
 
 type Client struct {
 	username string
 	handlers sync.Map
 	hub      WsHubInterface
+	logger   logr.Logger
 }
 
 var _ WsClientInterface = (*Client)(nil)
 
-func NewClient(username string, hub WsHubInterface) WsClientInterface {
+func NewClient(username string, hub WsHubInterface, logger logr.Logger) WsClientInterface {
 	return &Client{
 		username: username,
 		handlers: sync.Map{},
 		hub:      hub,
+		logger:   logger,
 	}
 }
 
@@ -39,10 +42,16 @@ func (c *Client) WriteMessage(message domain.ChatMessage) {
 	c.handlers.Range(func(key, value interface{}) bool {
 		handler, ok := value.(WsHandlerInterface)
 		if !ok {
-			return false
+			c.logger.Error(fmt.Errorf("error casting to WsHandlerInterface"), "error casting to WsHandlerInterface", "username", c.username)
+			return true
 		}
 
-		handler.WriteMessage(message)
+		err := handler.WriteMessage(message)
+		if err != nil {
+			c.logger.Error(err, "error writing message", "username", c.username, "message", message, "handler", handler)
+			return true
+		}
+
 		return true
 	})
 }
@@ -53,7 +62,8 @@ func (c *Client) Close(conn WsHandlerInterface) error {
 	c.handlers.Delete(id)
 	err := conn.Close()
 	if err != nil {
-		return fmt.Errorf("error closing connection: %v", err)
+		c.logger.Error(err, "error closing connection", "username", c.username)
+		return err
 	}
 
 	return nil

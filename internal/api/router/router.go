@@ -23,16 +23,17 @@ var upgrader = websocket.Upgrader{
 		return true
 	},
 }
-var Hub = ws.NewHub()
+var Hub ws.WsHubInterface
 
 // Init initializes the Gin router with all routes and middleware.
 func Init(log logr.Logger) *gin.Engine {
+	Hub = ws.NewHub(log)
 	router := gin.Default()
 
 	// Initialize routes
 	setupUsersApiRoutes(router)
 	setupAdminApiRoutes(router)
-	setupWebsocketRoutes(router)
+	setupWebsocketRoutes(router, log)
 	log.Info("Routes initialized")
 
 	go Hub.Run()
@@ -40,10 +41,12 @@ func Init(log logr.Logger) *gin.Engine {
 	return router
 }
 
-func setupWebsocketRoutes(router *gin.Engine) {
+func setupWebsocketRoutes(router *gin.Engine, logger logr.Logger) {
 	ws := router.Group("/ws")
 	ws.Use(isLoggedMiddleware())
-	ws.GET("/connect", wsHandler)
+	ws.GET("/connect", func(c *gin.Context) {
+		wsHandler(c, logger)
+	})
 }
 
 func setupUsersApiRoutes(router *gin.Engine) {
@@ -130,7 +133,7 @@ func adminOnlyMiddleware() gin.HandlerFunc {
 	}
 }
 
-func wsHandler(c *gin.Context) {
+func wsHandler(c *gin.Context, log logr.Logger) {
 	username, exists := c.Get("username")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized access"})
@@ -150,6 +153,6 @@ func wsHandler(c *gin.Context) {
 	}
 
 	connectionWrapper := connection.NewConnectionWrapper(conn)
-	wsHandler := ws.NewWsHandler(connectionWrapper, usernameStr)
+	wsHandler := ws.NewWsHandler(connectionWrapper, usernameStr, log)
 	Hub.Register(wsHandler)
 }

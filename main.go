@@ -20,11 +20,15 @@ func main() {
 	if os.Getenv("ENV") == "dev" {
 		zl = zerolog.New(zerolog.ConsoleWriter{
 			Out:        os.Stdout,
-			TimeFormat: "15:04:05", // Customize time format if needed.
+			TimeFormat: "15:04:05",
 		}).With().Timestamp().Logger()
 	} else {
-		// In production, use the default JSON logger.
-		zl = zerolog.New(os.Stdout).With().Timestamp().Logger()
+		//Log into file in order for the logs to be persisted\
+		file, err := os.OpenFile("logs.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+		if err != nil {
+			panic(err)
+		}
+		zl = zerolog.New(file).With().Timestamp().Logger()
 	}
 
 	var log logr.Logger = zerologr.New(&zl)

@@ -4,6 +4,7 @@ import (
 	"sync"
 
 	"github.com/givko/hoodie/internal/domain"
+	"github.com/go-logr/logr"
 )
 
 type Hub struct {
@@ -11,16 +12,18 @@ type Hub struct {
 	broadcast  chan domain.ChatMessage
 	register   chan WsHandlerInterface
 	unregister chan WsHandlerInterface
+	logger     logr.Logger
 }
 
 var _ WsHubInterface = (*Hub)(nil)
 
-func NewHub() *Hub {
+func NewHub(logger logr.Logger) *Hub {
 	return &Hub{
 		clients:    sync.Map{},
 		broadcast:  make(chan domain.ChatMessage),
 		register:   make(chan WsHandlerInterface),
 		unregister: make(chan WsHandlerInterface),
+		logger:     logger,
 	}
 }
 
@@ -65,7 +68,7 @@ func (h *Hub) registerConn(conn WsHandlerInterface) {
 	}
 
 	// Create a new client candidate.
-	newClient := NewClient(username, h)
+	newClient := NewClient(username, h, h.logger)
 
 	// Atomically store or retrieve the client.
 	actual, _ := h.clients.LoadOrStore(username, newClient)
@@ -86,15 +89,7 @@ func (h *Hub) broadcastMessage(message domain.ChatMessage) {
 }
 
 func (h *Hub) unregisterConn(conn WsHandlerInterface) {
-	username, err := conn.GetUsername()
-	if err != nil {
-		// TODO log error
-		return
-	}
 
-	if client, ok := h.getClient(username); ok {
-		client.Close(conn)
-	}
 }
 
 func (h *Hub) getClient(username string) (*Client, bool) {
@@ -102,6 +97,6 @@ func (h *Hub) getClient(username string) (*Client, bool) {
 	if !ok {
 		return nil, false
 	}
-	client := value.(*Client)
-	return client, true
+	client, ok := value.(*Client)
+	return client, ok
 }
