@@ -1,19 +1,22 @@
 package ws
 
 import (
+	"context"
 	"sync"
 
 	"github.com/givko/hoodie/internal/api/ws/connection"
-	"github.com/givko/hoodie/internal/domain"
+	"github.com/givko/hoodie/internal/api/ws/proto"
 	"github.com/go-logr/logr"
+	"github.com/redis/go-redis/v9"
 )
 
 type Hub struct {
-	clients    sync.Map
-	broadcast  chan domain.ChatMessage
-	register   chan RegisterPair
-	unregister chan WsClientInterface
-	logger     logr.Logger
+	clients     sync.Map
+	broadcast   chan *proto.Message
+	redisClient *redis.Client
+	register    chan RegisterPair
+	unregister  chan WsClientInterface
+	logger      logr.Logger
 }
 
 type RegisterPair struct {
@@ -23,18 +26,27 @@ type RegisterPair struct {
 
 var _ WsHubInterface = (*Hub)(nil)
 
-func NewHub(logger logr.Logger) *Hub {
+func NewHub(logger logr.Logger, redisClient *redis.Client) *Hub {
 	return &Hub{
-		clients:    sync.Map{},
-		broadcast:  make(chan domain.ChatMessage, 256),
-		register:   make(chan RegisterPair, 256),
-		unregister: make(chan WsClientInterface, 256),
-		logger:     logger.WithName("ws_hub"),
+		clients:     sync.Map{},
+		broadcast:   make(chan *proto.Message, 256),
+		register:    make(chan RegisterPair, 256),
+		unregister:  make(chan WsClientInterface, 256),
+		logger:      logger.WithName("ws_hub"),
+		redisClient: redisClient,
 	}
 }
 
 // Broadcast sends a message to the recipient
-func (h *Hub) Broadcast(message domain.ChatMessage) {
+func (h *Hub) Broadcast(message *proto.Message) {
+	ctx := context.Background()
+	cmd := h.redisClient.Publish(ctx, "chat_messages", message)
+	err := cmd.Err()
+	if err != nil {
+		h.logger.Error(err, "error publishing message to redis", "recipient", message.Recipient)
+		return
+	}
+
 	h.broadcast <- message
 }
 
@@ -83,7 +95,7 @@ func (h *Hub) registerConn(registerPair RegisterPair) {
 
 // broadcastMessage broadcasts a message to the recipient
 // It finds the client by the recipient username and sends the message to all connections of the client
-func (h *Hub) broadcastMessage(message domain.ChatMessage) {
+func (h *Hub) broadcastMessage(message *proto.Message) {
 	client, ok := h.getClient(message.Recipient)
 	if !ok {
 		return

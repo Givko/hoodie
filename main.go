@@ -4,10 +4,15 @@ import (
 	"os"
 
 	"github.com/givko/hoodie/internal/api/router"
+	"github.com/givko/hoodie/internal/api/ws"
+	"github.com/givko/hoodie/internal/infrastructure/subscribers"
 	"github.com/go-logr/logr"
 	"github.com/go-logr/zerologr"
+	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog"
 )
+
+var Hub ws.WsHubInterface
 
 func main() {
 	zerolog.TimeFieldFormat = zerolog.TimeFormatUnixMs
@@ -31,6 +36,15 @@ func main() {
 		zl = zerolog.New(file).With().Timestamp().Logger()
 	}
 
+	redisClient := redis.NewClient(&redis.Options{
+		Addr: "localhost:6379",
+	})
 	var log logr.Logger = zerologr.New(&zl)
-	router.Init(log).Run(":8080")
+
+	Hub = ws.NewHub(log, redisClient)
+	go subscribers.StartChatMessageSubscriber(redisClient, log)
+	go Hub.Run()
+
+	router.Init(Hub, log).Run(":8080")
+
 }

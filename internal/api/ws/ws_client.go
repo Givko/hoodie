@@ -5,7 +5,7 @@ import (
 	"sync"
 
 	"github.com/givko/hoodie/internal/api/ws/connection"
-	"github.com/givko/hoodie/internal/domain"
+	"github.com/givko/hoodie/internal/api/ws/proto"
 	"github.com/givko/hoodie/internal/infrastructure/utils"
 	"github.com/go-logr/logr"
 )
@@ -41,7 +41,7 @@ func (c *Client) AddNewConnection(conn connection.WsConnectionInterface) {
 }
 
 // writeMessage writes a message to all connections of the client
-func (c *Client) WriteMessage(message domain.ChatMessage) {
+func (c *Client) WriteMessage(message *proto.Message) {
 
 	c.handlers.Range(func(key, value interface{}) bool {
 		handler, ok := value.(WsHandlerInterface)
@@ -86,7 +86,7 @@ func (c *Client) Close(conn WsHandlerInterface) error {
 }
 
 // Broadcast sends a message to the central hub
-func (c *Client) Broadcast(message domain.ChatMessage) {
+func (c *Client) Broadcast(message *proto.Message) {
 	c.hub.Broadcast(message)
 }
 

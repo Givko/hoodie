@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/givko/hoodie/internal/domain"
 	"github.com/gorilla/websocket"
 	"google.golang.org/protobuf/proto"
 
@@ -12,8 +11,8 @@ import (
 )
 
 type WsConnectionInterface interface {
-	ReadMessage() (domain.ChatMessage, error)
-	WriteMessage(message domain.ChatMessage) error
+	ReadMessage() (*wsProto.Message, error)
+	WriteMessage(message *wsProto.Message) error
 	WriteCloseMessage() error
 	WritePingMessage() error
 	Close() error
@@ -35,11 +34,11 @@ func NewConnectionWrapper(conn *websocket.Conn) WsConnectionInterface {
 	}
 }
 
-func (c *ConnectionWrapper) ReadMessage() (domain.ChatMessage, error) {
+func (c *ConnectionWrapper) ReadMessage() (*wsProto.Message, error) {
 	return c.readProtobufMessage()
 }
 
-func (c *ConnectionWrapper) WriteMessage(message domain.ChatMessage) error {
+func (c *ConnectionWrapper) WriteMessage(message *wsProto.Message) error {
 	return c.writeProtobufMessage(message)
 }
 
@@ -75,33 +74,29 @@ func (c *ConnectionWrapper) WritePingMessage() error {
 // It returns the message and an error if any
 // It returns an error if the message type is not binary
 // It returns an error if the message cannot be unmarshaled
-func (w *ConnectionWrapper) readProtobufMessage() (domain.ChatMessage, error) {
+func (w *ConnectionWrapper) readProtobufMessage() (*wsProto.Message, error) {
 	typeId, message, err := w.conn.ReadMessage()
 	if err != nil {
-		return domain.ChatMessage{}, err
+		return &wsProto.Message{}, err
 	}
 
 	if typeId != websocket.BinaryMessage {
-		return domain.ChatMessage{}, fmt.Errorf("unexpected message type: %d", typeId)
+		return &wsProto.Message{}, fmt.Errorf("unexpected message type: %d", typeId)
 	}
 
 	unmarshaledMessage := wsProto.Message{}
 	err = proto.Unmarshal(message, &unmarshaledMessage)
 	if err != nil {
-		return domain.ChatMessage{}, err
+		return &wsProto.Message{}, err
 	}
 
-	return domain.ChatMessage{
-		Sender:    unmarshaledMessage.Sender,
-		Content:   unmarshaledMessage.Content,
-		Recipient: unmarshaledMessage.Recipient,
-	}, nil
+	return &unmarshaledMessage, nil
 }
 
 // writeProtobufMessage writes a protobuf message to the websocket connection
 // It returns an error if the message cannot be marshaled
 // It returns an error if the message cannot be written to the connection
-func (w *ConnectionWrapper) writeProtobufMessage(message domain.ChatMessage) error {
+func (w *ConnectionWrapper) writeProtobufMessage(message *wsProto.Message) error {
 	marshaledMessage, err := proto.Marshal(&wsProto.Message{
 		Sender:    message.Sender,
 		Recipient: message.Recipient,

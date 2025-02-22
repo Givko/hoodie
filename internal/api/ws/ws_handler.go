@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/givko/hoodie/internal/api/ws/connection"
-	"github.com/givko/hoodie/internal/domain"
+	"github.com/givko/hoodie/internal/api/ws/proto"
 	"github.com/go-logr/logr"
 	"github.com/google/uuid"
 )
@@ -29,7 +29,7 @@ type WebSocketHandler struct {
 	id         string
 	username   string
 	connection connection.WsConnectionInterface
-	writer     chan domain.ChatMessage
+	writer     chan *proto.Message
 	client     WsClientInterface
 	once       sync.Once
 	logger     logr.Logger
@@ -42,7 +42,7 @@ func NewWsHandler(conn connection.WsConnectionInterface, username string, client
 	return &WebSocketHandler{
 		connection: conn,
 		id:         id,
-		writer:     make(chan domain.ChatMessage),
+		writer:     make(chan *proto.Message),
 		client:     client,
 		username:   username,
 		logger:     log.WithName("ws_handler").WithValues("id", id, "username", username),
@@ -65,7 +65,7 @@ func (w *WebSocketHandler) Run() {
 	w.logger.Info("Websocket handler started")
 }
 
-func (w *WebSocketHandler) WriteMessage(message domain.ChatMessage) error {
+func (w *WebSocketHandler) WriteMessage(message *proto.Message) error {
 	w.writer <- message
 	return nil
 }
@@ -112,6 +112,7 @@ func (w *WebSocketHandler) runWriter() {
 					w.connection.WriteCloseMessage()
 					return
 				} else {
+
 					err := w.connection.WriteMessage(message)
 					if err != nil {
 						w.logger.Error(err, "Write message unsuccessful", "chat_message", message, "connection", w.id, "username", w.username)

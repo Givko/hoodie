@@ -1,9 +1,9 @@
 package ws
 
-import "github.com/givko/hoodie/internal/domain"
+import "github.com/givko/hoodie/internal/api/ws/proto"
 
 type WsHandlerInterface interface {
-	WriteMessage(message domain.ChatMessage) error
+	WriteMessage(message *proto.Message) error
 	Run()
 	GetUsername() (string, error)
 	GetId() (string, error)
