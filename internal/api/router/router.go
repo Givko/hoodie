@@ -14,6 +14,7 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/gorilla/websocket"
+	"github.com/redis/go-redis/v9"
 )
 
 var upgrader = websocket.Upgrader{
@@ -25,11 +26,11 @@ var upgrader = websocket.Upgrader{
 }
 
 // Init initializes the Gin router with all routes and middleware.
-func Init(hub ws.WsHubInterface, log logr.Logger) *gin.Engine {
+func Init(hub ws.WsHubInterface, log logr.Logger, redisClient *redis.Client) *gin.Engine {
 
 	router := gin.Default()
 	// Initialize routes
-	setupUsersApiRoutes(router)
+	setupUsersApiRoutes(router, log, redisClient)
 	setupAdminApiRoutes(router)
 	setupWebsocketRoutes(router, hub)
 
@@ -42,8 +43,8 @@ func setupWebsocketRoutes(router *gin.Engine, hub ws.WsHubInterface) {
 	ws.GET("/connect", func(ctx *gin.Context) { wsHandler(ctx, hub) })
 }
 
-func setupUsersApiRoutes(router *gin.Engine) {
-	user_in_memory_repository := in_memory.UserInMemoryRepository{}
+func setupUsersApiRoutes(router *gin.Engine, log logr.Logger, redisClient *redis.Client) {
+	user_in_memory_repository := in_memory.NewUserInMemoryRepository(redisClient)
 	user_service := service.NewUserService(user_in_memory_repository)
 	user_handler := handlers.NewUserHandler(user_service)
 
@@ -51,11 +52,6 @@ func setupUsersApiRoutes(router *gin.Engine) {
 	api_users := router.Group("/api/users")
 	api_users.POST("/register", user_handler.RegisterUserHandler)
 	api_users.POST("/login", user_handler.LoginUserHandler)
-
-	// User list route subgroup requires the user to be logged in
-	api_users_list := api_users.Group("/list")
-	api_users_list.Use(isLoggedMiddleware())
-	api_users_list.GET("/all", user_handler.ListUsersHandler)
 }
 
 func setupAdminApiRoutes(router *gin.Engine) {

@@ -39,14 +39,6 @@ func NewHub(logger logr.Logger, redisClient *redis.Client) *Hub {
 
 // Broadcast sends a message to the recipient
 func (h *Hub) Broadcast(message *proto.Message) {
-	ctx := context.Background()
-	cmd := h.redisClient.Publish(ctx, "chat_messages", message)
-	err := cmd.Err()
-	if err != nil {
-		h.logger.Error(err, "error publishing message to redis", "recipient", message.Recipient)
-		return
-	}
-
 	h.broadcast <- message
 }
 
@@ -96,6 +88,20 @@ func (h *Hub) registerConn(registerPair RegisterPair) {
 // broadcastMessage broadcasts a message to the recipient
 // It finds the client by the recipient username and sends the message to all connections of the client
 func (h *Hub) broadcastMessage(message *proto.Message) {
+	ctx := context.Background()
+	err := h.redisClient.XAdd(ctx, &redis.XAddArgs{
+		Stream: "chat_messages",
+		Values: map[string]interface{}{
+			"content":   message.Content,
+			"sender":    message.Sender,
+			"recipient": message.Recipient,
+		}}).Err()
+
+	if err != nil {
+		h.logger.Error(err, "error publishing message to redis", "recipient", message.Recipient)
+		return
+	}
+
 	client, ok := h.getClient(message.Recipient)
 	if !ok {
 		return

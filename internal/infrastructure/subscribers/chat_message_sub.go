@@ -2,11 +2,11 @@ package subscribers
 
 import (
 	"context"
+	"fmt"
+	"time"
 
-	wsProto "github.com/givko/hoodie/internal/api/ws/proto"
 	"github.com/go-logr/logr"
 	"github.com/redis/go-redis/v9"
-	"google.golang.org/protobuf/proto"
 )
 
 func StartChatMessageSubscriber(
@@ -14,19 +14,47 @@ func StartChatMessageSubscriber(
 	logger logr.Logger,
 ) {
 	ctx := context.Background()
-	sub := redisClient.Subscribe(ctx, "chat_messages")
-	defer sub.Close()
+	streamKey := "chat_messages"
+	groupName := "persisters"
+	err := redisClient.XGroupCreateMkStream(ctx, streamKey, groupName, "0").Err()
+	if err != nil && err.Error() != "BUSYGROUP Consumer Group name already exists" {
+		logger.Error(err, "Error creating consumer group")
+	}
 
-	messagesChannel := sub.Channel()
-	for message := range messagesChannel {
-		protoMessage := &wsProto.Message{}
-		messageAsByteArray := []byte(message.Payload)
-		err := proto.Unmarshal(messageAsByteArray, protoMessage)
+	// Infinite loop to continuously poll for messages.
+	for {
+		// XReadGroup waits up to 30 seconds for new messages; up to 10 messages are returned if available.
+		res, err := redisClient.XReadGroup(ctx, &redis.XReadGroupArgs{
+			Group:    groupName,
+			Consumer: "consumer_persister",
+			Streams:  []string{streamKey, ">"},
+			Count:    10,
+			Block:    30 * time.Second,
+		}).Result()
+
 		if err != nil {
-			logger.Error(err, "Error unmarshalling message from redis", "message", message)
+			// If no messages are available, Redis returns a redis.Nil error.
+			if err == redis.Nil {
+				continue
+			}
+
+			logger.Error(err, "Error reading messages")
 			continue
 		}
 
-		logger.Info("Received message from redis", "consumedMessage", protoMessage)
+		// Process the returned messages.
+		for _, stream := range res {
+			for _, message := range stream.Messages {
+				fmt.Printf("Processing message ID: %s\n", message.ID)
+				for key, value := range message.Values {
+					fmt.Printf("  %s: %v\n", key, value)
+				}
+
+				// Acknowledge the message to prevent redelivery.
+				if err := redisClient.XAck(ctx, streamKey, groupName, message.ID).Err(); err != nil {
+					logger.Info("Error acknowledging message", "id", message.ID, "error", err.Error())
+				}
+			}
+		}
 	}
 }

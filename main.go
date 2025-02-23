@@ -45,6 +45,6 @@ func main() {
 	go subscribers.StartChatMessageSubscriber(redisClient, log)
 	go Hub.Run()
 
-	router.Init(Hub, log).Run(":8080")
+	router.Init(Hub, log, redisClient).Run(":8080")
 
 }
