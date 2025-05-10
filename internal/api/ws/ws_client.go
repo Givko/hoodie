@@ -1,20 +1,23 @@
 package ws
 
 import (
-	"fmt"
 	"sync"
 
 	"github.com/givko/hoodie/internal/api/ws/connection"
 	"github.com/givko/hoodie/internal/api/ws/proto"
-	"github.com/givko/hoodie/internal/infrastructure/utils"
 	"github.com/go-logr/logr"
 )
 
+const (
+	MaxConnections = 3
+)
+
 type Client struct {
-	username string
-	handlers sync.Map
-	hub      WsHubInterface
-	logger   logr.Logger
+	username      string
+	handlers      [MaxConnections]WsHandlerInterface
+	handlersMutex sync.RWMutex
+	hub           WsHubInterface
+	logger        logr.Logger
 }
 
 var _ WsClientInterface = (*Client)(nil)
@@ -22,7 +25,7 @@ var _ WsClientInterface = (*Client)(nil)
 func NewClient(username string, hub WsHubInterface, logger logr.Logger) WsClientInterface {
 	return &Client{
 		username: username,
-		handlers: sync.Map{},
+		handlers: [MaxConnections]WsHandlerInterface{},
 		hub:      hub,
 		logger:   logger.WithName("ws_client").WithValues("username", username),
 	}
@@ -31,34 +34,38 @@ func NewClient(username string, hub WsHubInterface, logger logr.Logger) WsClient
 // addNewConnection adds a new connection to the client
 // It starts the writer and reader goroutines
 func (c *Client) AddNewConnection(conn connection.WsConnectionInterface) {
-	c.logger.Info("adding new connection")
-	handler := NewWsHandler(conn, c.username, c, c.logger)
-	id, _ := handler.GetId()
-	c.handlers.Store(id, handler)
+	c.handlersMutex.Lock()
+	defer c.handlersMutex.Unlock()
+	for index, handler := range c.handlers {
+		if handler != nil {
+			continue
+		}
 
-	go handler.Run()
-	c.logger.Info("new connection added", "id", id)
+		handler := NewWsHandler(conn, c.username, c, c.logger, uint32(index))
+		c.handlers[index] = handler
+		go handler.Run()
+		return
+	}
+
+	//Change signature to return error
 }
 
 // writeMessage writes a message to all connections of the client
 func (c *Client) WriteMessage(message *proto.Message) {
+	c.handlersMutex.RLock()
+	defer c.handlersMutex.RUnlock()
 
-	c.handlers.Range(func(key, value interface{}) bool {
-		handler, ok := value.(WsHandlerInterface)
-		if !ok {
-			c.logger.Error(fmt.Errorf("error casting to WsHandlerInterface"), "error casting to WsHandlerInterface", "username", c.username)
-			return true
+	for _, handler := range c.handlers {
+		if handler == nil {
+			continue
 		}
 
 		err := handler.WriteMessage(message)
 		if err != nil {
 			id, _ := handler.GetId()
 			c.logger.Error(err, "error writing message", "message", message, "handler", id)
-			return true
 		}
-
-		return true
-	})
+	}
 }
 
 // Close closes the provided connection
@@ -70,15 +77,17 @@ func (c *Client) Close(conn WsHandlerInterface) error {
 		return err
 	}
 
-	c.handlers.Delete(id)
-	isEmpty := utils.IsEmpty(&c.handlers)
-	if isEmpty {
-		fmt.Println("The sync.Map is empty")
-	} else {
-		fmt.Println("The sync.Map is not empty")
+	c.handlersMutex.Lock()
+	defer c.handlersMutex.Unlock()
+	c.handlers[id] = nil
+	allNil := true
+	for _, handler := range c.handlers {
+		if handler != nil {
+			allNil = false
+			break
+		}
 	}
-
-	if isEmpty {
+	if allNil {
 		c.hub.Unregister(c)
 	}
 

@@ -7,7 +7,6 @@ import (
 	"github.com/givko/hoodie/internal/api/ws/connection"
 	"github.com/givko/hoodie/internal/api/ws/proto"
 	"github.com/go-logr/logr"
-	"github.com/google/uuid"
 )
 
 // TODO: make this configurable
@@ -26,7 +25,7 @@ const (
 )
 
 type WebSocketHandler struct {
-	id         string
+	indexId    uint32
 	username   string
 	connection connection.WsConnectionInterface
 	writer     chan *proto.Message
@@ -37,15 +36,19 @@ type WebSocketHandler struct {
 
 var _ WsHandlerInterface = (*WebSocketHandler)(nil)
 
-func NewWsHandler(conn connection.WsConnectionInterface, username string, client WsClientInterface, log logr.Logger) *WebSocketHandler {
-	id := uuid.NewString()
+func NewWsHandler(
+	conn connection.WsConnectionInterface,
+	username string,
+	client WsClientInterface,
+	log logr.Logger,
+	indexId uint32) *WebSocketHandler {
 	return &WebSocketHandler{
 		connection: conn,
-		id:         id,
-		writer:     make(chan *proto.Message),
+		indexId:    indexId,
+		writer:     make(chan *proto.Message, 256),
 		client:     client,
 		username:   username,
-		logger:     log.WithName("ws_handler").WithValues("id", id, "username", username),
+		logger:     log.WithName("ws_handler").WithValues("username", username),
 	}
 }
 
@@ -108,15 +111,14 @@ func (w *WebSocketHandler) runWriter() {
 			{
 				w.connection.SetWriteDeadline(time.Now().Add(writeWait))
 				if !ok {
-					w.logger.Info("Connection closed", "connection", w.id, "username", w.username)
+					w.logger.Info("Connection closed", "username", w.username)
 					w.connection.WriteCloseMessage()
 					return
 				} else {
 
 					err := w.connection.WriteMessage(message)
 					if err != nil {
-						w.logger.Error(err, "Write message unsuccessful", "chat_message", message, "connection", w.id, "username", w.username)
-						break
+						w.logger.Error(err, "Write message unsuccessful", "chat_message", message, "username", w.username)
 					}
 				}
 			}
@@ -124,7 +126,7 @@ func (w *WebSocketHandler) runWriter() {
 			{
 				w.connection.SetWriteDeadline(time.Now().Add(writeWait))
 				if err := w.connection.WritePingMessage(); err != nil {
-					w.logger.Error(err, "Write ping message unsuccessful", "connection", w.id, "username", w.username)
+					w.logger.Error(err, "Write ping message unsuccessful", "username", w.username)
 					return
 				}
 			}
@@ -132,14 +134,14 @@ func (w *WebSocketHandler) runWriter() {
 	}
 }
 
-func (w *WebSocketHandler) GetId() (string, error) {
-	return w.id, nil
+func (w *WebSocketHandler) GetId() (uint32, error) {
+	return w.indexId, nil
 }
 
 func (w *WebSocketHandler) Close() error {
 	w.once.Do(func() {
 		if err := w.connection.Close(); err != nil {
-			w.logger.Error(err, "Error closing connection", "connection", w.id, "username", w.username)
+			w.logger.Error(err, "Error closing connection", "username", w.username)
 		}
 	})
 	return nil
