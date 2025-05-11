@@ -9,25 +9,27 @@ import (
 )
 
 const (
-	MaxConnections = 3
+	MaxConnections = 3 //Make configurable
 )
 
 type Client struct {
-	username      string
-	handlers      [MaxConnections]WsHandlerInterface
-	handlersMutex sync.RWMutex
-	hub           WsHubInterface
-	logger        logr.Logger
+	username          string
+	handlers          [MaxConnections]WsHandlerInterface
+	handlersMutex     sync.RWMutex
+	hub               WsHubInterface
+	logger            logr.Logger
+	activeConnections uint8
 }
 
 var _ WsClientInterface = (*Client)(nil)
 
 func NewClient(username string, hub WsHubInterface, logger logr.Logger) WsClientInterface {
 	return &Client{
-		username: username,
-		handlers: [MaxConnections]WsHandlerInterface{},
-		hub:      hub,
-		logger:   logger.WithName("ws_client").WithValues("username", username),
+		username:          username,
+		handlers:          [MaxConnections]WsHandlerInterface{},
+		hub:               hub,
+		logger:            logger.WithName("ws_client").WithValues("username", username),
+		activeConnections: 0,
 	}
 }
 
@@ -41,9 +43,10 @@ func (c *Client) AddNewConnection(conn connection.WsConnectionInterface) {
 			continue
 		}
 
-		handler := NewWsHandler(conn, c.username, c, c.logger, uint32(index))
+		handler := NewWsHandler(conn, c, c.logger, uint32(index))
 		c.handlers[index] = handler
 		go handler.Run()
+		c.activeConnections++
 		return
 	}
 
@@ -80,14 +83,8 @@ func (c *Client) Close(conn WsHandlerInterface) error {
 	c.handlersMutex.Lock()
 	defer c.handlersMutex.Unlock()
 	c.handlers[id] = nil
-	allNil := true
-	for _, handler := range c.handlers {
-		if handler != nil {
-			allNil = false
-			break
-		}
-	}
-	if allNil {
+	c.activeConnections--
+	if c.activeConnections == 0 {
 		c.hub.Unregister(c)
 	}
 

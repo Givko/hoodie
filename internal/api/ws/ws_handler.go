@@ -26,7 +26,6 @@ const (
 
 type WebSocketHandler struct {
 	indexId    uint32
-	username   string
 	connection connection.WsConnectionInterface
 	writer     chan *proto.Message
 	client     WsClientInterface
@@ -38,7 +37,6 @@ var _ WsHandlerInterface = (*WebSocketHandler)(nil)
 
 func NewWsHandler(
 	conn connection.WsConnectionInterface,
-	username string,
 	client WsClientInterface,
 	log logr.Logger,
 	indexId uint32) *WebSocketHandler {
@@ -47,17 +45,12 @@ func NewWsHandler(
 		indexId:    indexId,
 		writer:     make(chan *proto.Message, 256),
 		client:     client,
-		username:   username,
-		logger:     log.WithName("ws_handler").WithValues("username", username),
+		logger:     log.WithName("ws_handler"),
 	}
 }
 
 func (w *WebSocketHandler) SetClient(client WsClientInterface) {
 	w.client = client
-}
-
-func (w *WebSocketHandler) GetUsername() (string, error) {
-	return w.username, nil
 }
 
 func (w *WebSocketHandler) Run() {
@@ -111,14 +104,14 @@ func (w *WebSocketHandler) runWriter() {
 			{
 				w.connection.SetWriteDeadline(time.Now().Add(writeWait))
 				if !ok {
-					w.logger.Info("Connection closed", "username", w.username)
+					w.logger.Info("Connection closed")
 					w.connection.WriteCloseMessage()
 					return
 				} else {
 
 					err := w.connection.WriteMessage(message)
 					if err != nil {
-						w.logger.Error(err, "Write message unsuccessful", "chat_message", message, "username", w.username)
+						w.logger.Error(err, "Write message unsuccessful", "chat_message", message)
 					}
 				}
 			}
@@ -126,7 +119,7 @@ func (w *WebSocketHandler) runWriter() {
 			{
 				w.connection.SetWriteDeadline(time.Now().Add(writeWait))
 				if err := w.connection.WritePingMessage(); err != nil {
-					w.logger.Error(err, "Write ping message unsuccessful", "username", w.username)
+					w.logger.Error(err, "Write ping message unsuccessful")
 					return
 				}
 			}
@@ -141,7 +134,7 @@ func (w *WebSocketHandler) GetId() (uint32, error) {
 func (w *WebSocketHandler) Close() error {
 	w.once.Do(func() {
 		if err := w.connection.Close(); err != nil {
-			w.logger.Error(err, "Error closing connection", "username", w.username)
+			w.logger.Error(err, "Error closing connection")
 		}
 	})
 	return nil
